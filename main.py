@@ -5,8 +5,8 @@ import cv2
 import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer, util
 
-IMG_NAME = "generated_image_5.png"
-PROMPT = "A cup of coffee next to a computer"
+IMG_NAME = "generated_image_6.png"
+PROMPT = "A paper with a large 'A' written on it"
 
 # get stable diffusion model
 pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5")
@@ -92,8 +92,8 @@ def show_image(name, objects):
 
 # driver code
 if __name__ == "__main__":
-    # generate_image(PROMPT, IMG_NAME)
+    generate_image(PROMPT, IMG_NAME)
     found = get_detected_objects(IMG_NAME)
     nouns = get_prompt_nouns()
     matches = get_matching_objects(nouns, found)
-    show_image(IMG_NAME, found)
+    show_image(IMG_NAME, matches)
