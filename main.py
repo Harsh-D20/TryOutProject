@@ -5,8 +5,8 @@ import cv2
 import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer, util
 
-IMG_NAME = "generated_image_8.png"
-PROMPT = "A cityscape at sunset with flying cars"
+IMG_NAME = "generated_image_12.png"
+PROMPT = "A car parked on a driveway"
 
 
 # generates image using prompt and stable diffusion and saves it with file name 'name'
@@ -53,13 +53,14 @@ def get_matching_objects(prompt_nouns, found):
     model = SentenceTransformer("all-MiniLM-L6-v2")
     for fnoun, x1, y1, x2, y2 in found: 
         for pnoun in prompt_nouns:
+            if fnoun == pnoun: continue # go to next prompt noun
             fembed = model.encode(fnoun, convert_to_tensor=True)
             pembed = model.encode(pnoun, convert_to_tensor=True)
             # cos similarity fnoun, pnoun
             sim = util.cos_sim(fembed, pembed).item()
             print("SIMILARITY", sim, fnoun, pnoun)
             # threshold check
-            THRESHOLD = 0.5
+            THRESHOLD = 0.75
             if sim >= THRESHOLD:
                 # add to matched
                 matched_objects.append((pnoun, x1, y1, x2, y2))
