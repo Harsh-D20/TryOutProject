@@ -53,7 +53,6 @@ def get_matching_objects(prompt_nouns, found):
     model = SentenceTransformer("all-MiniLM-L6-v2")
     for fnoun, x1, y1, x2, y2 in found: 
         for pnoun in prompt_nouns:
-            if fnoun == pnoun: continue # go to next prompt noun
             fembed = model.encode(fnoun, convert_to_tensor=True)
             pembed = model.encode(pnoun, convert_to_tensor=True)
             # cos similarity fnoun, pnoun
