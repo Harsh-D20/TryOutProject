@@ -3,9 +3,10 @@ import spacy
 from ultralytics import YOLO
 import cv2
 import matplotlib.pyplot as plt
+from sentence_transformers import SentenceTransformer, util
 
-IMG_NAME = "generated_image_4.png"
-PROMPT = "A boy and a girl sitting on a bench"
+IMG_NAME = "generated_image_5.png"
+PROMPT = "A cup of coffee next to a computer"
 
 # get stable diffusion model
 pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5")
@@ -32,6 +33,7 @@ def get_detected_objects(name):
             label = model.names[cls]
             detections.append((label, x1, y1, x2, y2, conf))
 
+    # print for convenience
     for obj in detections:
         print(f"Object: {obj[0]}, Coordinates: ({obj[1]}, {obj[2]}, {obj[3]}, {obj[4]}), Confidence: {obj[5]}")
     
@@ -41,14 +43,33 @@ def get_detected_objects(name):
 def get_prompt_nouns():
     nlp = spacy.load("en_core_web_sm")
     doc = nlp(PROMPT)
-
     nouns = [token.text for token in doc if token.pos_ == "NOUN"]
+    # print for convenience
     print("Nouns in Prompt:", nouns)
     return nouns 
 
 # takes labeled image objects and prompt nouns and returns a list of their intersection
 def get_matching_objects(prompt_nouns, found):
-    matched_objects = [obj for obj in found if obj[0] in prompt_nouns]
+    """
+    TODO: use some form of similarity check (cosine similarity) to replace "person" with "boy" or "dog" with "fox"
+    """
+    # matched_objects = [obj for obj in found if obj[0] in prompt_nouns]
+    matched_objects = []
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    for fnoun, x1, y1, x2, y2, conf in found: 
+        for pnoun in prompt_nouns:
+            fembed = model.encode(fnoun, convert_to_tensor=True)
+            pembed = model.encode(pnoun, convert_to_tensor=True)
+            # cos similarity fnoun, pnoun
+            sim = util.cos_sim(fembed, pembed).item()
+            print("SIMILARITY", sim, fnoun, pnoun)
+            # threshold check
+            THRESHOLD = 0.5
+            if sim >= THRESHOLD:
+                # add to matched
+                matched_objects.append((pnoun, x1, y1, x2, y2, conf))
+    
+    # print for convenience
     print("Matched Objects:", matched_objects)
     return matched_objects
 
@@ -57,6 +78,7 @@ def show_image(name, objects):
     image = cv2.imread(name)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+    # create bounding boxes and labels
     for obj in objects:
         label, x1, y1, x2, y2, conf = obj
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
@@ -64,8 +86,9 @@ def show_image(name, objects):
         cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
         text = f"{label} ({conf:.2f})"
-        cv2.putText(image, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.putText(image, text, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
+    # display image
     plt.figure(figsize=(8, 8))
     plt.imshow(image)
     plt.axis("off")
@@ -73,8 +96,8 @@ def show_image(name, objects):
 
 # driver code
 if __name__ == "__main__":
-    generate_image(PROMPT, IMG_NAME)
-    found = get_detected_objects()
+    # generate_image(PROMPT, IMG_NAME)
+    found = get_detected_objects(IMG_NAME)
     nouns = get_prompt_nouns()
     matches = get_matching_objects(nouns, found)
     show_image(IMG_NAME, found)
