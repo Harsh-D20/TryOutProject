@@ -29,13 +29,12 @@ def get_detected_objects(name):
         for box in obj.boxes:
             x1, y1, x2, y2 = box.xyxy[0].tolist()
             cls = int(box.cls[0])
-            conf = float(box.conf[0])
             label = model.names[cls]
-            detections.append((label, x1, y1, x2, y2, conf))
+            detections.append((label, x1, y1, x2, y2))
 
     # print for convenience
     for obj in detections:
-        print(f"Object: {obj[0]}, Coordinates: ({obj[1]}, {obj[2]}, {obj[3]}, {obj[4]}), Confidence: {obj[5]}")
+        print(f"Object: {obj[0]}, Coordinates: ({obj[1]}, {obj[2]}, {obj[3]}, {obj[4]})")
     
     return detections
 
@@ -50,13 +49,10 @@ def get_prompt_nouns():
 
 # takes labeled image objects and prompt nouns and returns a list of their intersection
 def get_matching_objects(prompt_nouns, found):
-    """
-    TODO: use some form of similarity check (cosine similarity) to replace "person" with "boy" or "dog" with "fox"
-    """
     # matched_objects = [obj for obj in found if obj[0] in prompt_nouns]
     matched_objects = []
     model = SentenceTransformer("all-MiniLM-L6-v2")
-    for fnoun, x1, y1, x2, y2, conf in found: 
+    for fnoun, x1, y1, x2, y2 in found: 
         for pnoun in prompt_nouns:
             fembed = model.encode(fnoun, convert_to_tensor=True)
             pembed = model.encode(pnoun, convert_to_tensor=True)
@@ -67,7 +63,7 @@ def get_matching_objects(prompt_nouns, found):
             THRESHOLD = 0.5
             if sim >= THRESHOLD:
                 # add to matched
-                matched_objects.append((pnoun, x1, y1, x2, y2, conf))
+                matched_objects.append((pnoun, x1, y1, x2, y2))
     
     # print for convenience
     print("Matched Objects:", matched_objects)
@@ -80,12 +76,12 @@ def show_image(name, objects):
 
     # create bounding boxes and labels
     for obj in objects:
-        label, x1, y1, x2, y2, conf = obj
+        label, x1, y1, x2, y2 = obj
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
         cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
-        text = f"{label} ({conf:.2f})"
+        text = f"{label}"
         cv2.putText(image, text, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
     # display image
