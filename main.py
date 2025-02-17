@@ -5,14 +5,14 @@ import cv2
 import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer, util
 
-IMG_NAME = "generated_image_6.png"
-PROMPT = "A paper with a large 'A' written on it"
+IMG_NAME = "generated_image_8.png"
+PROMPT = "A cityscape at sunset with flying cars"
 
-# get stable diffusion model
-pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5")
 
 # generates image using prompt and stable diffusion and saves it with file name 'name'
 def generate_image(prompt, name):
+    # get stable diffusion model
+    pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5")
     image = pipe(prompt).images[0]
     image.save(name)
 
@@ -49,7 +49,6 @@ def get_prompt_nouns():
 
 # takes labeled image objects and prompt nouns and returns a list of their intersection
 def get_matching_objects(prompt_nouns, found):
-    # matched_objects = [obj for obj in found if obj[0] in prompt_nouns]
     matched_objects = []
     model = SentenceTransformer("all-MiniLM-L6-v2")
     for fnoun, x1, y1, x2, y2 in found: 
@@ -70,7 +69,7 @@ def get_matching_objects(prompt_nouns, found):
     return matched_objects
 
 # displays image with bounding boxes for each detected object
-def show_image(name, objects):
+def show_image(name, objects, backups):
     image = cv2.imread(name)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -83,6 +82,17 @@ def show_image(name, objects):
 
         text = f"{label}"
         cv2.putText(image, text, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        
+    for obj in backups: 
+        if obj in objects: continue
+        
+        label, x1, y1, x2, y2 = obj
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        
+        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        
+        text = f"{label}"
+        cv2.putText(image, text, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
 
     # display image
     plt.figure(figsize=(8, 8))
@@ -96,4 +106,4 @@ if __name__ == "__main__":
     found = get_detected_objects(IMG_NAME)
     nouns = get_prompt_nouns()
     matches = get_matching_objects(nouns, found)
-    show_image(IMG_NAME, matches)
+    show_image(IMG_NAME, matches, found)
